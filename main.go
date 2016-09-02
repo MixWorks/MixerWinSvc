@@ -31,8 +31,8 @@ func usage(errmsg string) {
 }
 
 func main() {
-	const svcName = "MDS-SERVER"
-	const svcDesc = "MDS-SERVER-Middleware"
+	const svcName = "MIXER"
+	const svcDesc = "MIXER Workflow Service"
 	
 	isIntSess, err := svc.IsAnInteractiveSession()
 	if err != nil {

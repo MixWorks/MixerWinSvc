@@ -59,19 +59,19 @@ func (m *myservice) Execute(args []string, r <-chan svc.ChangeRequest, changes c
 	tick := fasttick
 	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 	
-	QUERYHUB_SERVICE		:= "MDS-SERVICE"
-	QUERYHUB_ROOT 			:= "C:\\play\\portal\\queryhub\\"
-	QUERYHUB_LOG			:= QUERYHUB_ROOT + QUERYHUB_SERVICE + ".LOG"
-	QUERYHUB_ACTIVATOR		:= QUERYHUB_ROOT + "activator.bat"
-	QUERYHUB_SEMAPHORE_RUNNING  	:= QUERYHUB_ROOT + QUERYHUB_SERVICE + ".IS.RUNNING"
-	QUERYHUB_SEMAPHORE_STOPPED  	:= QUERYHUB_ROOT + QUERYHUB_SERVICE + ".IS.STOPPED"
+	MIXER_SERVICE			:= "MIXER-SERVICE"
+	MIXER_ROOT 			:= "C:\\Program Files\\MixWorks\\MixerWinSvc\\"
+	MIXER_LOG			:= MIXER_ROOT + MIXER_SERVICE + ".LOG"
+	MIXER_START			:= MIXER_ROOT + "startmixer.bat"
+	MIXER_SEMAPHORE_RUNNING  	:= MIXER_ROOT + MIXER_SERVICE + ".IS.RUNNING"
+	MIXER_SEMAPHORE_STOPPED  	:= MIXER_ROOT + MIXER_SERVICE + ".IS.STOPPED"
 	
 	const supports = eventlog.Error | eventlog.Warning | eventlog.Info
-	err := eventlog.InstallAsEventCreate(QUERYHUB_SERVICE, supports)
+	err := eventlog.InstallAsEventCreate(MIXER_SERVICE, supports)
 		if err != nil {
 			log.Printf("Event Log Install failed: %s", err)
 		}
-	winlog, err := eventlog.Open(QUERYHUB_SERVICE)
+	winlog, err := eventlog.Open(MIXER_SERVICE)
 		if err != nil {
 			log.Printf("Event Log Open failed: %s", err)
 		}
@@ -82,7 +82,7 @@ func (m *myservice) Execute(args []string, r <-chan svc.ChangeRequest, changes c
 		}
 
 	// open the out file for writing
-	cmdstdout, err := os.Create( QUERYHUB_LOG )
+	cmdstdout, err := os.Create( MIXER_LOG )
 		if err != nil {
 			err = winlog.Info(1, "FAILED outfile")
 			if err != nil {
@@ -92,26 +92,26 @@ func (m *myservice) Execute(args []string, r <-chan svc.ChangeRequest, changes c
    	defer cmdstdout.Close()
    	   	
 	cmdstdin,cmdcon  := io.Pipe()
-	go launcher( cmdstdin, 	cmdstdout, winlog, QUERYHUB_SERVICE )
+	go launcher( cmdstdin, 	cmdstdout, winlog, MIXER_SERVICE )
 	  	
 	cmdstdout.WriteString( "\r\n" )
-   	cmdstdout.WriteString( QUERYHUB_SERVICE + " is Running " )	
+   	cmdstdout.WriteString( MIXER_SERVICE + " is Running " )	
 	cmdstdout.WriteString( "\r\n" )
 	
    	cmdcon.Write( []byte("\r\n") )
       	cmdcon.Write( []byte("cd ") )
-      	cmdcon.Write( []byte( QUERYHUB_ROOT ) )
+      	cmdcon.Write( []byte( MIXER_ROOT ) )
      	cmdcon.Write( []byte("\r\n") )
       	cmdcon.Write( []byte("del ") )
-      	cmdcon.Write( []byte( QUERYHUB_SEMAPHORE_STOPPED ) )
+      	cmdcon.Write( []byte( MIXER_SEMAPHORE_STOPPED ) )
      	cmdcon.Write( []byte("\r\n") )
      	
-	semaphore, err := os.Create( QUERYHUB_SEMAPHORE_RUNNING )
+	semaphore, err := os.Create( MIXER_SEMAPHORE_RUNNING )
 	semaphore.WriteString( "\r\n" )
-	semaphore.WriteString( QUERYHUB_SERVICE + " is Running " )	
+	semaphore.WriteString( MIXER_SERVICE + " is Running " )	
 	semaphore.WriteString( "\r\n" )
 	
-   	cmdcon.Write( []byte( QUERYHUB_ACTIVATOR ) )
+   	cmdcon.Write( []byte( MIXER_START ) )
 	cmdcon.Write( []byte(" \"run -Dhttp.port=80  -Dhttps.port=443\"") )
    	cmdcon.Write( []byte("\r\n") )
    	   	
@@ -131,7 +131,7 @@ loop:
 				changes <- c.CurrentStatus
 			case svc.Stop, svc.Shutdown:
 				semaphore.Close()
-			        os.Rename( QUERYHUB_SEMAPHORE_RUNNING, QUERYHUB_SEMAPHORE_STOPPED )
+			        os.Rename( MIXER_SEMAPHORE_RUNNING, MIXER_SEMAPHORE_STOPPED )
 				err = winlog.Info(1, "SERVICE CLOSED")
 				break loop
 			case svc.Pause:
